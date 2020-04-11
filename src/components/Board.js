@@ -28,7 +28,7 @@ const useStyles = makeStyles(theme => ({
         
     },
     loadingBackdrop: {
-
+        /* position: "fixed", */
     },
     root: {
         maxWidth: "1200px",
@@ -66,12 +66,18 @@ const useStyles = makeStyles(theme => ({
         flexBasis: "100%",
         justifyContent: "flex-end",
         margin: "10px 0",
+    },
+    greenButton: {
+        backgroundColor: green[500],
+        "&:hover": {
+            backgroundColor: green[700],
+        }
     }
 }));
 
-const theme = createMuiTheme({
+const greenTheme = createMuiTheme({
     palette: {
-        primary: { main: green[500], contrastText: "#fff" },
+        greenPrimary: { main: green[500], contrastText: "#fff" },
     },
 });
 
@@ -135,23 +141,65 @@ export default function Board(props){
         }
     }, [flipList]);
 
-    const init = () =>{
-        let total = Math.ceil(size.row * size.column / 2);
-        let urlList = Array.apply(null, Array(total)).map((item, index) => { return apiConfig.baseUrl+"?random="+(index+1) });
+    async function prepareImage(amount, duplicateObj){
+        let timeStamp = Date.now();
+        let urlList = Array.apply(null, Array(amount)).map((item, index) => { return apiConfig.baseUrl+"?random="+(timeStamp+index) });
+        //console.log('urlList ', urlList);
         let count = 0;
         let imagePromiseList = urlList.map(url => 
-            axios.get(url)/* .then(promise => {
-                console.log('preload +1');
-                count += 1;
-                setPreloadProgress(100 * count / urlList.length);
-                return promise;
-            }) */
+            axios.get(url)
+        );
+        let promises = await axios.all(imagePromiseList);
+        let imageURLList = promises.map(item => item.request.responseURL);
+        console.log("current imageURLList ", imageURLList.sort());
+        let {totalObj, duplicateList} = generateTotalObj(imageURLList, duplicateObj);
+        console.log("duplicate imageURLList ", duplicateList);
+        if(duplicateList.length === 0){
+            //return imageURLList;
+            return Object.keys(totalObj);
+        }
+        else{   //found duplicate, need to re-axios those urls
+            console.log('found duplicates, go into recursion');
+            let returnList = await prepareImage(duplicateList.length, totalObj);
+            //return Object.keys(totalObj).concat(returnList);
+            return Object.keys(totalObj);
+        }
+    }
+
+    const init = async () =>{
+        let total = Math.ceil(size.row * size.column / 2);
+        let imageURLList = await prepareImage(total, {});
+        let blobPromiseList = imageURLList.map((url, index) => axios.get(url, {
+                responseType: 'blob'
+            })
+        );
+        //generate a shuffled index list for generating the tiles, and a flip list default with false
+        axios.all(blobPromiseList).then(()=>{
+            let indexList = shuffleGenerate(imageURLList);
+            setImageList(imageURLList);
+            setMatchList(indexList);
+            setFlipList(new Array(indexList.length).fill(false));
+            setTimeout(()=>{
+                setLoading(false);
+            }, 0);                
+        });
+        /* let timeStamp = Date.now();
+        let urlList = Array.apply(null, Array(total)).map((item, index) => { return apiConfig.baseUrl+"?random="+(timeStamp+index) });
+        //console.log('urlList ', urlList);
+        let count = 0;
+        let imagePromiseList = urlList.map(url => 
+            axios.get(url)
         );
         axios.all(imagePromiseList).then( promises =>{
             let imageURLList = promises.map(item => item.request.responseURL);
             console.log("imageURLList ", imageURLList.sort());
-            console.log("duplicate imageURLList ", findRepeat(imageURLList));
-            setImageList(imageURLList);
+            let {totalObj, duplicateList} = generateTotalObj(imageURLList);
+            console.log("duplicate imageURLList ", duplicateList);
+            if(duplicateList.length === 0)
+                setImageList(imageURLList);
+            else{   //found duplicate, need to re-axios those urls
+                let newTimeStamp = Date.now();
+            }
             let blobPromiseList = imageURLList.map((url, index) => axios.get(url, {
                     responseType: 'blob'
                 })
@@ -165,7 +213,7 @@ export default function Board(props){
                     setLoading(false);
                 }, 0);                
             });
-        });
+        }); */
     }
 
     const handleClick = (event, props) =>{
@@ -205,7 +253,15 @@ export default function Board(props){
         setMatchList([]);
         setFlipProgress(1);
         //init();
-        
+    }
+
+    const shuffleAndReplay = () =>{
+        firstFlip.current = secondFlip.current = undefined;
+        let indexList = shuffleGenerate(imageList);
+        setMatchList(indexList);
+        setFlipList(new Array(indexList.length).fill(false));
+        setDialogOpen(false);
+        setFlipProgress(1);
     }
 
     const finishInit = (challenge, size) =>{
@@ -244,17 +300,15 @@ export default function Board(props){
                     <LinearProgress className={classes.progressBar} variant="determinate" value={flipProgress} />
                 </div>
                 <div className={classes.replayRow}>
-                    <ThemeProvider theme={theme}>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={handleReplay}
-                            className={classes.button}
-                            endIcon={<ReplayIcon />}
-                        >
-                            Replay
-                        </Button>
-                    </ThemeProvider>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleReplay}
+                        className={classes.greenButton}
+                        endIcon={<ReplayIcon />}
+                    >
+                        Replay
+                    </Button>
                 </div>
                 <div className={clsx(classes.rowRoot)}>
                     {chunk(matchList, size.column).map((arr, index)=>
@@ -275,16 +329,20 @@ export default function Board(props){
                         open={dialogOpen}
                         onClose={handleCloseDialog}
                         aria-labelledby="finish-dialog"
+                        disableBackdropClick
                     >
                         <DialogTitle id="finish-dialog">Congratulations!</DialogTitle>
                         <DialogContent>
                         <DialogContentText id="alert-dialog-description">
-                            You have finished the game. Do you like to play again?
+                            You have finished the game. Do you like to start a new game?
                         </DialogContentText>
                         </DialogContent>
                         <DialogActions>
                         <Button onClick={handleCloseDialog} color="primary">
                             No
+                        </Button>
+                        <Button onClick={shuffleAndReplay} color="primary" autoFocus>
+                            No, shuffle and replay
                         </Button>
                         <Button onClick={handleReplay} color="primary" autoFocus>
                             Yes
@@ -300,8 +358,8 @@ export default function Board(props){
 
 
 
-function findRepeat(arr){
-    var uniq = arr.map((item) => {
+function generateTotalObj(arr, duplicateObj){
+    /* var uniq = arr.map((item) => {
         return {
         count: 1,
         name: item
@@ -309,9 +367,24 @@ function findRepeat(arr){
     }).reduce((a, b) => {
         a[b.name] = (a[b.name] || 0) + b.count
         return a
-    }, {})
-
-    return Object.keys(uniq).filter((a) => uniq[a] > 1);
+    }, {}) 
+    return Object.keys(uniq).filter((a) => uniq[a] > 1);*/
+    
+    let duplicateList = [];
+    if(duplicateObj === undefined)
+        duplicateObj = {};
+    arr.forEach(element => {
+        if(duplicateObj[element] === undefined)
+            duplicateObj[element] = 1;
+        else{
+            duplicateObj[element] += 1;
+            duplicateList.push(element);
+        }
+    });
+    return {
+        totalObj: duplicateObj,
+        duplicateList: duplicateList
+    };
 }
 
 

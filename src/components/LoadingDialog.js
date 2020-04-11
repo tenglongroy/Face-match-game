@@ -26,6 +26,7 @@ const useStyles = makeStyles((theme) => ({
     },
     formControlLabel: {
       marginTop: theme.spacing(1),
+      marginRight: "auto",
     },
 }));
 
@@ -53,6 +54,7 @@ export default function LoadingDialog(props){
             maxWidth="sm"
             open={!props.dimensionSelected}
             aria-labelledby="loading-dialog-title"
+            disableBackdropClick
         >
             <DialogTitle id="loading-dialog-title">Choose dimension for the board</DialogTitle>
             <DialogContent>
