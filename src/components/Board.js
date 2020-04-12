@@ -28,7 +28,7 @@ const useStyles = makeStyles(theme => ({
         
     },
     loadingBackdrop: {
-        /* position: "fixed", */
+        
     },
     root: {
         maxWidth: "1200px",
@@ -37,9 +37,15 @@ const useStyles = makeStyles(theme => ({
         flexWrap: "wrap",
     },
     progressRow: {
-        display: "flex",
+        /* display: "flex",
         flexWrap: "wrap",
-        flexGrow: 1
+        flexGrow: 1, */
+        position: "fixed",
+        top: 0,
+        width: "100%",
+        maxWidth: "1200px",
+        backgroundColor: "#fff",
+        zIndex: 9999,
     },
     progressBar: {
         flexBasis: "100%",
@@ -65,7 +71,7 @@ const useStyles = makeStyles(theme => ({
         display: "flex",
         flexBasis: "100%",
         justifyContent: "flex-end",
-        margin: "10px 0",
+        margin: "70px 0 10px",
     },
     greenButton: {
         backgroundColor: green[500],
@@ -151,15 +157,15 @@ export default function Board(props){
         );
         let promises = await axios.all(imagePromiseList);
         let imageURLList = promises.map(item => item.request.responseURL);
-        console.log("current imageURLList ", imageURLList.sort());
+        //console.log("current imageURLList ", imageURLList.sort());
         let {totalObj, duplicateList} = generateTotalObj(imageURLList, duplicateObj);
-        console.log("duplicate imageURLList ", duplicateList);
+        //console.log("duplicate imageURLList ", duplicateList);
         if(duplicateList.length === 0){
             //return imageURLList;
             return Object.keys(totalObj);
         }
         else{   //found duplicate, need to re-axios those urls
-            console.log('found duplicates, go into recursion');
+            //console.log('found duplicates, go into recursion');
             let returnList = await prepareImage(duplicateList.length, totalObj);
             //return Object.keys(totalObj).concat(returnList);
             return Object.keys(totalObj);
@@ -217,11 +223,11 @@ export default function Board(props){
     }
 
     const handleClick = (event, props) =>{
-        console.log(props.index);
+        //console.log(props.index);
         let index = parseInt(event.currentTarget.getAttribute('index'));
         //if the clicked tile is already flip, do nothing.
         if(flipList[index]){
-            console.log("tile "+index+" has already been successfully flipped");
+            //console.log("tile "+index+" has already been successfully flipped");
             return;
         }
 
