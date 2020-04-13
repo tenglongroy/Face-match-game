@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import clsx from 'clsx';
 import { makeStyles, ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import { green } from '@material-ui/core/colors';
@@ -13,12 +13,13 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import Backdrop from '@material-ui/core/Backdrop';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import ReplayIcon from '@material-ui/icons/Replay';
+import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 import {roundDecimal} from '../util';
 import Tile from "./Tile";
 import LoadingDialog from './LoadingDialog';
 //import {apiConfig} from '../config';  ???
 
-const apiConfig = require('../config').apiConfig;
+const {apiConfig, challengeMapping} = require('../config');
 const axios = require('axios').default;
 
 
@@ -37,24 +38,26 @@ const useStyles = makeStyles(theme => ({
         flexWrap: "wrap",
     },
     progressRow: {
-        /* display: "flex",
-        flexWrap: "wrap",
+        display: "flex",
+        /* flexWrap: "wrap",
         flexGrow: 1, */
         position: "fixed",
         top: 0,
         width: "100%",
         maxWidth: "1200px",
         backgroundColor: "#fff",
-        zIndex: 9999,
+        zIndex: 99,
     },
     progressBar: {
-        flexBasis: "100%",
+        /* flexBasis: "100%", */
+        flexGrow: 1,
         margin: theme.spacing(2),
     },
     rowRoot: {
         display: "flex",
         flexWrap: "wrap",
         flexDirection: "column",
+        margin: "0 auto",
     },
     columnRoot: {
         display: "flex",
@@ -67,10 +70,10 @@ const useStyles = makeStyles(theme => ({
         display: "flex",
         flexDirection: "column",
     },
-    replayRow: {
+    actionRow: {
         display: "flex",
         flexBasis: "100%",
-        justifyContent: "flex-end",
+        justifyContent: "space-between",
         margin: "70px 0 10px",
     },
     greenButton: {
@@ -105,9 +108,22 @@ export default function Board(props){
     //const [preloadProgress, setPreloadProgress] = useState(0);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dimensionSelected, setDimensionSelected] = useState(false);
-
+    const [rowRootMaxWidth, setRowRootMaxWidth] = useState("none");
+    
     let firstFlip = useRef(undefined);
     let secondFlip = useRef(undefined);
+    let challengeLevel = useRef(undefined);
+    const rootElement = useRef(null);
+    const rowRootElement = useRef(null);
+    /* const measuredRef = useCallback(root => {
+        if (root !== null && rowRootElement.current !== null) {
+            const gap = root.getBoundingClientRect().height - rowRootElement.current.getBoundingClientRect().height;
+            const ratio = rowRootElement.current.getBoundingClientRect().height / rowRootElement.current.getBoundingClientRect().width;
+            const newHeight = window.innerHeight - gap;
+            const newWidth = newHeight / ratio;
+            setRowRootMaxWidth(newWidth);
+        }
+      }, []); */
     //let preloadProgress = useRef(0);
 
     //get actual image url from random url
@@ -174,7 +190,11 @@ export default function Board(props){
 
     const init = async () =>{
         let total = Math.ceil(size.row * size.column / 2);
-        let imageURLList = await prepareImage(total, {});
+        let imageURLList;
+        if(challengeLevel.current !== undefined) //challenge mode
+            imageURLList = challengeMapping[challengeLevel.current].images;
+        else    //normal mode
+            imageURLList = await prepareImage(total, {});
         let blobPromiseList = imageURLList.map((url, index) => axios.get(url, {
                 responseType: 'blob'
             })
@@ -252,13 +272,42 @@ export default function Board(props){
     const handleReplay = () =>{
         firstFlip.current = secondFlip.current = undefined;
         setDialogOpen(false);
-        setDimensionSelected(false);
-        //setLoading(true);
-        setFlipList([]);
-        setImageList([]);
-        setMatchList([]);
-        setFlipProgress(1);
-        //init();
+        if(challengeLevel.current !== undefined){
+            if(challengeMapping[challengeLevel.current+1] === undefined){
+                //TODO - complete all challenge
+            }
+            else{
+                challengeLevel.current += 1;
+                setDimensionSelected(true);
+                setLoading(true);
+                setSize({
+                    row: challengeMapping[challengeLevel.current].rows,
+                    column: challengeMapping[challengeLevel.current].columns 
+                });
+            }
+        }
+        else{
+            setDimensionSelected(false);
+            //setLoading(true);
+            setFlipList([]);
+            setImageList([]);
+            setMatchList([]);
+            setFlipProgress(1);
+            //init();
+        }
+    }
+
+    const handleZoom = () =>{
+        if(rowRootMaxWidth === "none"){
+            const gap = rootElement.current.getBoundingClientRect().height - rowRootElement.current.getBoundingClientRect().height;
+            const ratio = rowRootElement.current.getBoundingClientRect().height / rowRootElement.current.getBoundingClientRect().width;
+            const newHeight = window.innerHeight - gap;
+            const newWidth = newHeight / ratio;
+            setRowRootMaxWidth(newWidth + "px");
+        }
+        else{
+            setRowRootMaxWidth("none");
+        }
     }
 
     const shuffleAndReplay = () =>{
@@ -270,11 +319,19 @@ export default function Board(props){
         setFlipProgress(1);
     }
 
-    const finishInit = (challenge, size) =>{
-        if(challenge){
+    const finishInit = (isChallenge, size) =>{
+        if(isChallenge){
             //for korean face
+            challengeLevel.current = 1;
+            setDimensionSelected(true);
+            setLoading(true);
+            setSize({
+                row: challengeMapping[challengeLevel.current].rows,
+                column: challengeMapping[challengeLevel.current].columns 
+            });
         }
         else{
+            challengeLevel.current = undefined;
             const sizeList = size.split('x');
             setDimensionSelected(true);
             setLoading(true);
@@ -300,12 +357,20 @@ export default function Board(props){
             )}
         
             {dimensionSelected && !isLoading && (
-            <div className={classes.root}>
+            <div className={classes.root} ref={rootElement}>
                 <div className={classes.progressRow}>
                     <Typography variant="h6" gutterBottom>Completion {flipProgress === 1 ? 0 : flipProgress}%</Typography>
                     <LinearProgress className={classes.progressBar} variant="determinate" value={flipProgress} />
                 </div>
-                <div className={classes.replayRow}>
+                <div className={classes.actionRow}>
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={handleZoom}
+                        endIcon={<ZoomOutMapIcon />}
+                    >
+                        Zoom
+                    </Button>
                     <Button
                         variant="contained"
                         color="primary"
@@ -316,7 +381,7 @@ export default function Board(props){
                         Replay
                     </Button>
                 </div>
-                <div className={clsx(classes.rowRoot)}>
+                <div className={clsx(classes.rowRoot)} ref={rowRootElement} style={{maxWidth: rowRootMaxWidth}}>
                     {chunk(matchList, size.column).map((arr, index)=>
                         <div key={"row"+index} className={clsx(classes.columnRoot)}>
                             {arr.map((match, ind) => {
@@ -340,7 +405,7 @@ export default function Board(props){
                         <DialogTitle id="finish-dialog">Congratulations!</DialogTitle>
                         <DialogContent>
                         <DialogContentText id="alert-dialog-description">
-                            You have finished the game. Do you like to start a new game?
+                            {challengeLevel.current !== undefined ? `You have passed level ${challengeLevel.current}, do you like to continue?` : "You have finished the game. Do you like to start a new game?"}
                         </DialogContentText>
                         </DialogContent>
                         <DialogActions>
