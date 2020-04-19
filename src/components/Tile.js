@@ -2,9 +2,10 @@ import React from "react";
 import clsx from 'clsx';
 import { makeStyles } from '@material-ui/core/styles';
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
+import { useTheme } from '@material-ui/core/styles'
 
 
-const useStyles = makeStyles({
+const useStyles = makeStyles( theme => ({
     tileRoot: {
         flexGrow: 1,
         padding: "5px",
@@ -36,21 +37,32 @@ const useStyles = makeStyles({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        width: "100%",
-        height: "100%",
-        backgroundColor: "blue",
-        color: "red",
+        /* width: "100%",
+        height: "100%", */
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.secondary.main,
         backfaceVisibility: "hidden",
+        overflow: "hidden",
         left: 0,
         top: 0,
         right: 0,
         bottom: 0,
+    },
+    innerIcon: {
+        height: "70%",
+        width: "auto",
+        position: "absolute",
+        /* display: "block",
+        fontSize: "inherit", */
+        // fontSize: "unset",
     }
-});
+}));
 
 
 export default function Tile(props){
-    const classes = useStyles(props);
+    
+    const theme = useTheme();
+    const classes = useStyles(theme);
 
 
     return(
@@ -67,7 +79,8 @@ export default function Tile(props){
                     src={props.url} alt="tile"
                 />
                 <div className={classes.innerCover}>
-                    <HelpOutlineIcon style={{ fontSize: 60 }}/>
+                    {/* <HelpOutlineIcon style={{ height: "70%", width: "auto", fontSize: "unset" }}/> */}
+                    <HelpOutlineIcon className={classes.innerIcon} />
                 </div>
             </div>
         </div>

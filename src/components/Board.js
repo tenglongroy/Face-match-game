@@ -17,6 +17,7 @@ import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 import {roundDecimal} from '../util';
 import Tile from "./Tile";
 import LoadingDialog from './LoadingDialog';
+import { useTheme } from '@material-ui/core/styles'
 //import {apiConfig} from '../config';  ???
 
 const {apiConfig, challengeMapping} = require('../config');
@@ -76,10 +77,16 @@ const useStyles = makeStyles(theme => ({
         justifyContent: "space-between",
         margin: "70px 0 10px",
     },
-    greenButton: {
-        backgroundColor: green[500],
+    zoomButton: {
+        backgroundColor: theme.palette.inherit.main,
         "&:hover": {
-            backgroundColor: green[700],
+            backgroundColor: theme.palette.inherit.dark,
+        }
+    },
+    replayButton: {
+        backgroundColor: theme.palette.default.main,
+        "&:hover": {
+            backgroundColor: theme.palette.default.dark,
         }
     }
 }));
@@ -92,7 +99,8 @@ const greenTheme = createMuiTheme({
 
 
 export default function Board(props){
-    const classes = useStyles(props);
+    const theme = useTheme();
+    const classes = useStyles(theme);
 
     /* const [rows, setRows] = useState(props.rows || 4);
     const [columns, setColumns] = useState(props.columns || 6); */
@@ -365,17 +373,16 @@ export default function Board(props){
                 <div className={classes.actionRow}>
                     <Button
                         variant="contained"
-                        color="secondary"
                         onClick={handleZoom}
+                        className={classes.zoomButton}
                         endIcon={<ZoomOutMapIcon />}
                     >
                         Zoom
                     </Button>
                     <Button
                         variant="contained"
-                        color="primary"
                         onClick={handleReplay}
-                        className={classes.greenButton}
+                        className={classes.replayButton}
                         endIcon={<ReplayIcon />}
                     >
                         Replay
@@ -409,10 +416,10 @@ export default function Board(props){
                         </DialogContentText>
                         </DialogContent>
                         <DialogActions>
-                        <Button onClick={handleCloseDialog} color="primary">
+                        <Button onClick={handleCloseDialog} color="inherit">
                             No
                         </Button>
-                        <Button onClick={shuffleAndReplay} color="primary" autoFocus>
+                        <Button onClick={shuffleAndReplay} color="default" autoFocus>
                             No, shuffle and replay
                         </Button>
                         <Button onClick={handleReplay} color="primary" autoFocus>
