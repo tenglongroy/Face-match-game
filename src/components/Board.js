@@ -17,7 +17,8 @@ import ZoomOutMapIcon from '@material-ui/icons/ZoomOutMap';
 import {roundDecimal} from '../util';
 import Tile from "./Tile";
 import LoadingDialog from './LoadingDialog';
-import { useTheme } from '@material-ui/core/styles'
+import StopWatch from './StopWatch';
+import { useTheme } from '@material-ui/core/styles';
 //import {apiConfig} from '../config';  ???
 
 const {apiConfig, challengeMapping} = require('../config');
@@ -30,7 +31,7 @@ const useStyles = makeStyles(theme => ({
         
     },
     loadingBackdrop: {
-        
+        zIndex: 100,
     },
     root: {
         maxWidth: "1200px",
@@ -117,6 +118,17 @@ export default function Board(props){
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dimensionSelected, setDimensionSelected] = useState(false);
     const [rowRootMaxWidth, setRowRootMaxWidth] = useState("none");
+
+    const [challengeCompleteMessage, setChallengeCompleteMessage] = useState("");
+
+
+    const [replayDialogOpen, setReplayDialogOpen] = useState(false);
+
+
+    //stop watch
+    const [totalTime, setTotalTime] = useState(0);
+    const [timerStart, setTimerStart] = useState(false);
+    const [startTime, setStartTime] = useState(Date.now());
     
     let firstFlip = useRef(undefined);
     let secondFlip = useRef(undefined);
@@ -150,11 +162,29 @@ export default function Board(props){
         if(flipList.length > 0 && firstFlip.current !== undefined && secondFlip.current !== undefined){
             if(matchList[firstFlip.current] === matchList[secondFlip.current]){  //if two flipped tiles are a match
                 setFlipProgress(roundDecimal(100 * flipList.filter(item => item).length / flipList.length, 1));
-                //finish the game
-                if(flipList.filter(item => item).length === flipList.length){
+                
+                if(flipList.filter(item => item).length === flipList.length){   //finish the game
+                    setTimerStart(false);
                     setTimeout(()=>{
                         setDialogOpen(true);
                     }, 500);
+
+                    if(challengeMapping[challengeLevel.current+1] === undefined){    //complete last challenge, get the ranking of totalTime from backend
+                        axios({
+                            url: "",
+                            method: "POST",
+                            data: {
+                                finishTime: totalTime,
+                            }
+                        })
+                        .then(response => {
+                            let rank = response.data.rank;
+                            setChallengeCompleteMessage(", ranking "+rank+"% ahead.");
+                        })
+                        .catch(e =>{
+                            console.log(e);
+                        });
+                    }
                 }
             }
             else{   //if not match, wait half second then flip both tiles back, and set firstFlip and secondFlip to undefined
@@ -215,39 +245,10 @@ export default function Board(props){
             setFlipList(new Array(indexList.length).fill(false));
             setTimeout(()=>{
                 setLoading(false);
-            }, 0);                
+                setTimerStart(true);
+                setStartTime(Date.now());
+            }, 0);
         });
-        /* let timeStamp = Date.now();
-        let urlList = Array.apply(null, Array(total)).map((item, index) => { return apiConfig.baseUrl+"?random="+(timeStamp+index) });
-        //console.log('urlList ', urlList);
-        let count = 0;
-        let imagePromiseList = urlList.map(url => 
-            axios.get(url)
-        );
-        axios.all(imagePromiseList).then( promises =>{
-            let imageURLList = promises.map(item => item.request.responseURL);
-            console.log("imageURLList ", imageURLList.sort());
-            let {totalObj, duplicateList} = generateTotalObj(imageURLList);
-            console.log("duplicate imageURLList ", duplicateList);
-            if(duplicateList.length === 0)
-                setImageList(imageURLList);
-            else{   //found duplicate, need to re-axios those urls
-                let newTimeStamp = Date.now();
-            }
-            let blobPromiseList = imageURLList.map((url, index) => axios.get(url, {
-                    responseType: 'blob'
-                })
-            );
-            //generate a shuffled index list for generating the tiles, and a flip list default with false
-            axios.all(blobPromiseList).then(()=>{
-                let indexList = shuffleGenerate(imageURLList);
-                setMatchList(indexList);
-                setFlipList(new Array(indexList.length).fill(false));
-                setTimeout(()=>{
-                    setLoading(false);
-                }, 0);                
-            });
-        }); */
     }
 
     const handleClick = (event, props) =>{
@@ -278,11 +279,16 @@ export default function Board(props){
     }
 
     const handleReplay = () =>{
+        setTimerStart(false);
+        setReplayDialogOpen(true);
+    }
+
+    const handleDialogYes = () =>{
         firstFlip.current = secondFlip.current = undefined;
         setDialogOpen(false);
         if(challengeLevel.current !== undefined){
-            if(challengeMapping[challengeLevel.current+1] === undefined){
-                //TODO - complete all challenge
+            if(challengeMapping[challengeLevel.current+1] === undefined){   //finish all challenge, show total time and rank
+                //complete all challenge
             }
             else{
                 challengeLevel.current += 1;
@@ -325,6 +331,13 @@ export default function Board(props){
         setFlipList(new Array(indexList.length).fill(false));
         setDialogOpen(false);
         setFlipProgress(1);
+
+        setReplayDialogOpen(false);
+        if(challengeLevel.current !== undefined){
+            //setStartTime(Date.now());
+            setTimerStart(true);
+        }
+            
     }
 
     const finishInit = (isChallenge, size) =>{
@@ -335,7 +348,7 @@ export default function Board(props){
             setLoading(true);
             setSize({
                 row: challengeMapping[challengeLevel.current].rows,
-                column: challengeMapping[challengeLevel.current].columns 
+                column: challengeMapping[challengeLevel.current].columns
             });
         }
         else{
@@ -352,6 +365,18 @@ export default function Board(props){
         }
     }
 
+    const handleCloseReplayDialog = () =>{
+        setReplayDialogOpen(false);
+        setTimerStart(true);
+    }
+
+    const handleMainPage = () =>{
+        setTimerStart(false);
+        //setStartTime(Date.now());
+        setReplayDialogOpen(false);
+        setDimensionSelected(false);
+    }
+
 
     return(
         <div className={classes.fullScreenRoot}>
@@ -364,7 +389,7 @@ export default function Board(props){
             </Backdrop>
             )}
         
-            {dimensionSelected && !isLoading && (
+            
             <div className={classes.root} ref={rootElement}>
                 <div className={classes.progressRow}>
                     <Typography variant="h6" gutterBottom>Completion {flipProgress === 1 ? 0 : flipProgress}%</Typography>
@@ -379,6 +404,7 @@ export default function Board(props){
                     >
                         Zoom
                     </Button>
+                    {challengeLevel.current !== undefined && <StopWatch startTime={startTime} totalTime={totalTime} setTotalTime={setTotalTime} timerStart={timerStart} />}
                     <Button
                         variant="contained"
                         onClick={handleReplay}
@@ -388,6 +414,7 @@ export default function Board(props){
                         Replay
                     </Button>
                 </div>
+                {dimensionSelected && !isLoading && (
                 <div className={clsx(classes.rowRoot)} ref={rowRootElement} style={{maxWidth: rowRootMaxWidth}}>
                     {chunk(matchList, size.column).map((arr, index)=>
                         <div key={"row"+index} className={clsx(classes.columnRoot)}>
@@ -400,6 +427,7 @@ export default function Board(props){
                         </div>
                     )}
                 </div>
+                )}
 
                 {dialogOpen && (
                     <Dialog
@@ -412,7 +440,7 @@ export default function Board(props){
                         <DialogTitle id="finish-dialog">Congratulations!</DialogTitle>
                         <DialogContent>
                         <DialogContentText id="alert-dialog-description">
-                            {challengeLevel.current !== undefined ? `You have passed level ${challengeLevel.current}, do you like to continue?` : "You have finished the game. Do you like to start a new game?"}
+                            {challengeLevel.current !== undefined ? `You have passed level ${challengeLevel.current}, your total time is +${totalTime}` + (challengeLevel.current === 0 ? challengeCompleteMessage : ", do you like to continue?") : "You have finished the game. Do you like to start a new game?"}
                         </DialogContentText>
                         </DialogContent>
                         <DialogActions>
@@ -422,14 +450,41 @@ export default function Board(props){
                         <Button onClick={shuffleAndReplay} color="default" autoFocus>
                             No, shuffle and replay
                         </Button>
-                        <Button onClick={handleReplay} color="primary" autoFocus>
+                        <Button onClick={handleDialogYes} color="primary" autoFocus>
                             Yes
                         </Button>
                         </DialogActions>
                     </Dialog>
                 )}
+
+                {replayDialogOpen && (
+                    <Dialog
+                        className={classes.replayDialog}
+                        open={replayDialogOpen}
+                        onClose={handleCloseReplayDialog}
+                        aria-labelledby="replay-dialog"
+                        disableBackdropClick
+                    >
+                        <DialogTitle id="replay-dialog">Do you want to replay?</DialogTitle>
+                        <DialogContent>
+                        <DialogContentText id="alert-dialog-description">
+                            Do you want to replay?
+                        </DialogContentText>
+                        </DialogContent>
+                        <DialogActions>
+                        <Button onClick={handleCloseReplayDialog} color="inherit">
+                            No
+                        </Button>
+                        <Button onClick={shuffleAndReplay} color="default" autoFocus>
+                            Yes, shuffle and replay
+                        </Button>
+                        <Button onClick={handleMainPage} color="primary" autoFocus>
+                            Yes, re-select dimension
+                        </Button>
+                        </DialogActions>
+                    </Dialog>
+                )}
             </div>
-            )}
         </div>
     )
 }
