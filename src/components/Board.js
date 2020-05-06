@@ -246,8 +246,10 @@ export default function Board(props){
             setTimeout(()=>{
                 setLoading(false);
                 setTimerStart(true);
-                if(challengeLevel.current === 1)    //only setStartTime at beginning of challenge
+                if(challengeLevel.current === 1){   //only setStartTime at beginning of challenge
+                    setTotalTime(0);
                     setStartTime(Date.now());
+                }
             }, 0);
         });
     }
@@ -406,7 +408,7 @@ export default function Board(props){
                     >
                         Zoom
                     </Button>
-                    {challengeLevel.current !== undefined && <StopWatch startTime={startTime} totalTime={totalTime} setTotalTime={setTotalTime} timerStart={timerStart} />}
+                    {challengeLevel.current !== undefined && <StopWatch startTime={startTime} setStartTime={setStartTime} totalTime={totalTime} setTotalTime={setTotalTime} timerStart={timerStart} />}
                     <Button
                         variant="contained"
                         onClick={handleReplay}

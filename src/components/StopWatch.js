@@ -21,21 +21,31 @@ export default function StopWatch(props){
 
     const timerInterval = useRef(undefined);
     const refStartTime = useRef(props.startTime);
+    
 
     useEffect(()=>{
-        if(props.timerStart){
+        if(props.timerStart){   //start
+            if(props.totalTime !== 0){  //if this is not the new start, but a pause -> start
+                refStartTime.current = Date.now() - props.totalTime;
+                props.setStartTime(refStartTime.current);
+            }
+            props.setTotalTime(Date.now() - refStartTime.current);
             timerInterval.current = setInterval(()=>{
                 props.setTotalTime(Date.now() - refStartTime.current);
             }, 10);
         }
-        else{
+        else{   //stop
             if(timerInterval.current !== undefined)
                 clearInterval(timerInterval.current);
         }
     }, [props.timerStart]);
 
     useEffect(()=>{
-        refStartTime.current = props.startTime;
+        if(refStartTime.current !== props.startTime){   //if not equal, the StopWatch is reset and restarted
+            console.log('refStartTime.current '+refStartTime.current+' != props.startTime '+props.startTime);
+            refStartTime.current = props.startTime;
+            props.setTotalTime(0);
+        }        
     }, [props.startTime]);
 
     const centiseconds = ("0" + (Math.floor(props.totalTime / 10) % 100)).slice(-2);

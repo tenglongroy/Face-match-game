@@ -10,6 +10,7 @@ const useStyles = makeStyles( theme => ({
     tileRoot: {
         flexGrow: 1,
         margin: 5,
+        borderRadius: theme.spacing(1),
         perspective: "1000px",
         // transform: "rotateY(180deg)",
         flexBasis: props => `calc(100% / ${props.columns})`,
