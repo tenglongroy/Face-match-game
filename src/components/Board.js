@@ -246,7 +246,8 @@ export default function Board(props){
             setTimeout(()=>{
                 setLoading(false);
                 setTimerStart(true);
-                setStartTime(Date.now());
+                if(challengeLevel.current === 1)    //only setStartTime at beginning of challenge
+                    setStartTime(Date.now());
             }, 0);
         });
     }
@@ -289,6 +290,7 @@ export default function Board(props){
         if(challengeLevel.current !== undefined){
             if(challengeMapping[challengeLevel.current+1] === undefined){   //finish all challenge, show total time and rank
                 //complete all challenge
+                //axios({})
             }
             else{
                 challengeLevel.current += 1;
