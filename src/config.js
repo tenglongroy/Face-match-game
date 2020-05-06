@@ -2,6 +2,8 @@ export var apiConfig = {
     baseUrl: "https://picsum.photos/400/400"    //https://picsum.photos/200/300?random={int}
 }
 
+export var defaultAnnouncement = "In the future, you can rank your challenge result with other people.";
+
 export var challengeMapping = {
     1: {
         rows: 2,

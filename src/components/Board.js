@@ -19,6 +19,7 @@ import Tile from "./Tile";
 import LoadingDialog from './LoadingDialog';
 import StopWatch from './StopWatch';
 import { useTheme } from '@material-ui/core/styles';
+import AnnouncementBar from "./AnnouncementBar";
 //import {apiConfig} from '../config';  ???
 
 const {apiConfig, challengeMapping} = require('../config');
@@ -38,6 +39,8 @@ const useStyles = makeStyles(theme => ({
         margin: "0 auto",
         display: "flex",
         flexWrap: "wrap",
+        minHeight: "100vh",
+        alignContent: "flex-start",
     },
     progressRow: {
         display: "flex",
@@ -419,9 +422,9 @@ export default function Board(props){
                     </Button>
                 </div>
                 {dimensionSelected && !isLoading && (
-                <div className={clsx(classes.rowRoot)} ref={rowRootElement} style={{maxWidth: rowRootMaxWidth}}>
+                <div className={classes.rowRoot} ref={rowRootElement} style={{maxWidth: rowRootMaxWidth}}>
                     {chunk(matchList, size.column).map((arr, index)=>
-                        <div key={"row"+index} className={clsx(classes.columnRoot)}>
+                        <div key={"row"+index} className={classes.columnRoot}>
                             {arr.map((match, ind) => {
                                 let trueIndex = index * size.column + ind;
                                 return (
@@ -489,6 +492,7 @@ export default function Board(props){
                     </Dialog>
                 )}
             </div>
+            <AnnouncementBar />
         </div>
     )
 }
