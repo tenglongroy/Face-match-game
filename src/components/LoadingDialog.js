@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
@@ -40,7 +40,7 @@ export default function LoadingDialog(props){
         (challenge || size.length) && props.finishInit(challenge, size);
     }
     const handleSizeChange = (event) =>{
-        const {name, value} = event.target;
+        const {value} = event.target;
         setSize(value);
     }
     const handleChallenge = (event) =>{

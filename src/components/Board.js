@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import clsx from 'clsx';
-import { makeStyles, ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
+import React, { useState, useEffect, useRef } from "react";
+import { makeStyles, createMuiTheme } from '@material-ui/core/styles';
 import { green } from '@material-ui/core/colors';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import Typography from '@material-ui/core/Typography';
@@ -95,11 +94,11 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
-const greenTheme = createMuiTheme({
+/* const greenTheme = createMuiTheme({
     palette: {
         greenPrimary: { main: green[500], contrastText: "#fff" },
     },
-});
+}); */
 
 
 export default function Board(props){
@@ -208,7 +207,6 @@ export default function Board(props){
         let timeStamp = Date.now();
         let urlList = Array.apply(null, Array(amount)).map((item, index) => { return apiConfig.baseUrl+"?random="+(timeStamp+index) });
         //console.log('urlList ', urlList);
-        let count = 0;
         let imagePromiseList = urlList.map(url => 
             axios.get(url)
         );
@@ -384,6 +382,10 @@ export default function Board(props){
         setDimensionSelected(false);
     }
 
+    const seconds = ("0" + (Math.floor(totalTime / 1000) % 60)).slice(-2);
+    const minutes = ("0" + (Math.floor(totalTime / 60000) % 60)).slice(-2);
+    const hours = ("0" + Math.floor(totalTime / 3600000)).slice(-2);
+    const totalTimeFormatted = (hours === "00" ? "" : hours +"h ") + "" + (hours === "00" && minutes === "00" ? "" : minutes +"m ") + "" + (seconds === "00" ? "" : seconds +"s");
 
     return(
         <div className={classes.fullScreenRoot}>
@@ -447,7 +449,7 @@ export default function Board(props){
                         <DialogTitle id="finish-dialog">Congratulations!</DialogTitle>
                         <DialogContent>
                         <DialogContentText id="alert-dialog-description">
-                            {challengeLevel.current !== undefined ? `You have passed level ${challengeLevel.current}, your total time is +${totalTime}` + (challengeLevel.current === 0 ? challengeCompleteMessage : ", do you like to continue?") : "You have finished the game. Do you like to start a new game?"}
+                            {challengeLevel.current !== undefined ? `You have passed level ${challengeLevel.current}, your total time is ${totalTimeFormatted}` + (challengeLevel.current === 0 ? challengeCompleteMessage : ", do you like to continue?") : "You have finished the game. Do you like to start a new game?"}
                         </DialogContentText>
                         </DialogContent>
                         <DialogActions>
