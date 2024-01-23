@@ -342,7 +342,7 @@ export default function Board(props){
             //setStartTime(Date.now());
             setTimerStart(true);
         }
-            
+        
     }
 
     const finishInit = (isChallenge, size) =>{
@@ -377,6 +377,7 @@ export default function Board(props){
 
     const handleMainPage = () =>{
         setTimerStart(false);
+        setFlipProgress(1);
         //setStartTime(Date.now());
         setReplayDialogOpen(false);
         setDimensionSelected(false);
